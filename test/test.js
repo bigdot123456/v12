@@ -47,7 +47,7 @@ const ETH_ADDRESS = '0x' + Array(41).join(0);
 
 describe('IDEX contract v2', () => {
   let from, gas, gasPrice, exchangeContract, accounts;
-  let getCurrentContractBalance = () => Promise.reject(Error('Not initialized'));
+  let getCurrentContractBalance = curryN(2, () => Promise.reject(Error('Not initialized')));
   before(() => eth.getAccounts()
     .then((_accounts) => (accounts = _accounts))
     .then(([ _from ]) => (from = _from))
