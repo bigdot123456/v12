@@ -1,0 +1,982 @@
+[
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "token",
+    "type": "address"
+   },
+   {
+    "name": "target",
+    "type": "address"
+   },
+   {
+    "name": "amount",
+    "type": "uint256"
+   }
+  ],
+  "name": "withdrawEIP777",
+  "outputs": [
+   {
+    "name": "success",
+    "type": "bool"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "newOwner",
+    "type": "address"
+   }
+  ],
+  "name": "setOwner",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "token",
+    "type": "address"
+   },
+   {
+    "name": "target",
+    "type": "address"
+   },
+   {
+    "name": "amount",
+    "type": "uint256"
+   },
+   {
+    "name": "isEIP777",
+    "type": "bool"
+   }
+  ],
+  "name": "withdrawUnprotectedFunds",
+  "outputs": [
+   {
+    "name": "success",
+    "type": "bool"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": true,
+  "inputs": [
+   {
+    "name": "",
+    "type": "bytes32"
+   }
+  ],
+  "name": "withdrawn",
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "constant": true,
+  "inputs": [
+   {
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "name": "thirdPartyDepositorDisabled",
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "token",
+    "type": "address"
+   },
+   {
+    "name": "amount",
+    "type": "uint256"
+   },
+   {
+    "name": "user",
+    "type": "address"
+   },
+   {
+    "name": "target",
+    "type": "address"
+   },
+   {
+    "name": "nonce",
+    "type": "uint256"
+   },
+   {
+    "name": "v",
+    "type": "uint8"
+   },
+   {
+    "name": "r",
+    "type": "bytes32"
+   },
+   {
+    "name": "s",
+    "type": "bytes32"
+   },
+   {
+    "name": "feeTransfer",
+    "type": "uint256"
+   }
+  ],
+  "name": "transfer",
+  "outputs": [
+   {
+    "name": "success",
+    "type": "bool"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "_address",
+    "type": "bytes"
+   }
+  ],
+  "name": "bytesToAddress",
+  "outputs": [
+   {
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": true,
+  "inputs": [
+   {
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "name": "admins",
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "token",
+    "type": "address"
+   },
+   {
+    "name": "amount",
+    "type": "uint256"
+   },
+   {
+    "name": "user",
+    "type": "address"
+   },
+   {
+    "name": "target",
+    "type": "address"
+   },
+   {
+    "name": "authorizeArbitraryFee",
+    "type": "bool"
+   },
+   {
+    "name": "nonce",
+    "type": "uint256"
+   },
+   {
+    "name": "v",
+    "type": "uint8"
+   },
+   {
+    "name": "r",
+    "type": "bytes32"
+   },
+   {
+    "name": "s",
+    "type": "bytes32"
+   },
+   {
+    "name": "feeWithdrawal",
+    "type": "uint256"
+   }
+  ],
+  "name": "adminWithdrawEIP777",
+  "outputs": [
+   {
+    "name": "success",
+    "type": "bool"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "admin",
+    "type": "address"
+   },
+   {
+    "name": "isAdmin",
+    "type": "bool"
+   }
+  ],
+  "name": "setAdmin",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [],
+  "name": "registerEIP777Interface",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": true,
+  "inputs": [
+   {
+    "name": "",
+    "type": "address"
+   },
+   {
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "name": "tokens",
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [],
+  "name": "createDepositProxy",
+  "outputs": [
+   {
+    "name": "proxyAddress",
+    "type": "address"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": true,
+  "inputs": [],
+  "name": "feeAccount",
+  "outputs": [
+   {
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "constant": true,
+  "inputs": [
+   {
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "name": "invalidOrder",
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [],
+  "name": "getOwner",
+  "outputs": [
+   {
+    "name": "out",
+    "type": "address"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "from",
+    "type": "address"
+   },
+   {
+    "name": "to",
+    "type": "address"
+   },
+   {
+    "name": "amount",
+    "type": "uint256"
+   },
+   {
+    "name": "userData",
+    "type": "bytes"
+   },
+   {
+    "name": "operator",
+    "type": "address"
+   },
+   {
+    "name": "operatorData",
+    "type": "bytes"
+   }
+  ],
+  "name": "tokensReceived",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": true,
+  "inputs": [],
+  "name": "owner",
+  "outputs": [
+   {
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "token",
+    "type": "address"
+   },
+   {
+    "name": "amount",
+    "type": "uint256"
+   },
+   {
+    "name": "user",
+    "type": "address"
+   },
+   {
+    "name": "target",
+    "type": "address"
+   },
+   {
+    "name": "authorizeArbitraryFee",
+    "type": "bool"
+   },
+   {
+    "name": "nonce",
+    "type": "uint256"
+   },
+   {
+    "name": "v",
+    "type": "uint8"
+   },
+   {
+    "name": "r",
+    "type": "bytes32"
+   },
+   {
+    "name": "s",
+    "type": "bytes32"
+   },
+   {
+    "name": "feeWithdrawal",
+    "type": "uint256"
+   }
+  ],
+  "name": "adminWithdraw",
+  "outputs": [
+   {
+    "name": "success",
+    "type": "bool"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "a",
+    "type": "uint256"
+   },
+   {
+    "name": "b",
+    "type": "uint256"
+   }
+  ],
+  "name": "safeSub",
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "disabled",
+    "type": "bool"
+   }
+  ],
+  "name": "setThirdPartyDepositorDisabled",
+  "outputs": [
+   {
+    "name": "success",
+    "type": "bool"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": true,
+  "inputs": [
+   {
+    "name": "",
+    "type": "bytes32"
+   }
+  ],
+  "name": "transferred",
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "user",
+    "type": "address"
+   },
+   {
+    "name": "nonce",
+    "type": "uint256"
+   }
+  ],
+  "name": "invalidateOrdersBefore",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "target",
+    "type": "address"
+   },
+   {
+    "name": "amount",
+    "type": "uint256"
+   },
+   {
+    "name": "data",
+    "type": "bytes"
+   }
+  ],
+  "name": "tokenFallback",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "a",
+    "type": "uint256"
+   },
+   {
+    "name": "b",
+    "type": "uint256"
+   }
+  ],
+  "name": "safeMul",
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": true,
+  "inputs": [
+   {
+    "name": "",
+    "type": "bytes32"
+   }
+  ],
+  "name": "traded",
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "token",
+    "type": "address"
+   },
+   {
+    "name": "target",
+    "type": "address"
+   },
+   {
+    "name": "amount",
+    "type": "uint256"
+   }
+  ],
+  "name": "withdraw",
+  "outputs": [
+   {
+    "name": "success",
+    "type": "bool"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "expiry",
+    "type": "uint256"
+   }
+  ],
+  "name": "setInactivityReleasePeriod",
+  "outputs": [
+   {
+    "name": "success",
+    "type": "bool"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": true,
+  "inputs": [
+   {
+    "name": "",
+    "type": "address"
+   },
+   {
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "name": "lastActiveTransaction",
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "a",
+    "type": "uint256"
+   },
+   {
+    "name": "b",
+    "type": "uint256"
+   }
+  ],
+  "name": "safeAdd",
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "tradeValues",
+    "type": "uint256[8]"
+   },
+   {
+    "name": "tradeAddresses",
+    "type": "address[4]"
+   },
+   {
+    "name": "v",
+    "type": "uint8[2]"
+   },
+   {
+    "name": "rs",
+    "type": "bytes32[4]"
+   }
+  ],
+  "name": "trade",
+  "outputs": [
+   {
+    "name": "success",
+    "type": "bool"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": true,
+  "inputs": [],
+  "name": "inactivityReleasePeriod",
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "target",
+    "type": "address"
+   }
+  ],
+  "name": "deposit",
+  "outputs": [],
+  "payable": true,
+  "stateMutability": "payable",
+  "type": "function"
+ },
+ {
+  "constant": true,
+  "inputs": [
+   {
+    "name": "",
+    "type": "bytes32"
+   }
+  ],
+  "name": "orderFills",
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "token",
+    "type": "address"
+   },
+   {
+    "name": "target",
+    "type": "address"
+   },
+   {
+    "name": "amount",
+    "type": "uint256"
+   }
+  ],
+  "name": "depositToken",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": true,
+  "inputs": [
+   {
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "name": "protectedFunds",
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "name": "feeAccount_",
+    "type": "address"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "constructor"
+ },
+ {
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "fallback"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": false,
+    "name": "beneficiary",
+    "type": "address"
+   },
+   {
+    "indexed": false,
+    "name": "proxyAddress",
+    "type": "address"
+   }
+  ],
+  "name": "ProxyCreated",
+  "type": "event"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": false,
+    "name": "tokenBuy",
+    "type": "address"
+   },
+   {
+    "indexed": false,
+    "name": "tokenSell",
+    "type": "address"
+   },
+   {
+    "indexed": false,
+    "name": "maker",
+    "type": "address"
+   },
+   {
+    "indexed": false,
+    "name": "taker",
+    "type": "address"
+   },
+   {
+    "indexed": false,
+    "name": "amount",
+    "type": "uint256"
+   },
+   {
+    "indexed": false,
+    "name": "hash",
+    "type": "bytes32"
+   }
+  ],
+  "name": "Trade",
+  "type": "event"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": false,
+    "name": "token",
+    "type": "address"
+   },
+   {
+    "indexed": false,
+    "name": "user",
+    "type": "address"
+   },
+   {
+    "indexed": false,
+    "name": "amount",
+    "type": "uint256"
+   },
+   {
+    "indexed": false,
+    "name": "balance",
+    "type": "uint256"
+   }
+  ],
+  "name": "Deposit",
+  "type": "event"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": false,
+    "name": "token",
+    "type": "address"
+   },
+   {
+    "indexed": false,
+    "name": "user",
+    "type": "address"
+   },
+   {
+    "indexed": false,
+    "name": "amount",
+    "type": "uint256"
+   },
+   {
+    "indexed": false,
+    "name": "balance",
+    "type": "uint256"
+   }
+  ],
+  "name": "Withdraw",
+  "type": "event"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": false,
+    "name": "token",
+    "type": "address"
+   },
+   {
+    "indexed": false,
+    "name": "recipient",
+    "type": "address"
+   }
+  ],
+  "name": "Transfer",
+  "type": "event"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": true,
+    "name": "previousOwner",
+    "type": "address"
+   },
+   {
+    "indexed": true,
+    "name": "newOwner",
+    "type": "address"
+   }
+  ],
+  "name": "SetOwner",
+  "type": "event"
+ }
+]
