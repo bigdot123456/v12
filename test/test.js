@@ -17,6 +17,10 @@ const {
   bindKey
 } = require('lodash');
 const {
+  flow
+} = require('lodash/fp');
+const compose = require('promise-compose');
+const {
   toBuffer,
   hashPersonalMessage,
   ecsign,
@@ -41,13 +45,43 @@ const getContractBalance = curryN(3, (contract, user, token) => eth.call({
   }, [ token, user ])
 }));
 
+const joinCurry3 = curryN(3, join);
+const joinToParentDir = joinCurry3(__dirname)('..');
+
+const sendTxCurried = curryN(3, ({
+  gas,
+  gasPrice
+}, to, {
+  from,
+  data,
+  to: toOverride,
+  gas: gasOverride,
+  gasPrice: gasPriceOverride,
+  value
+}) => eth.sendTransaction({
+  gas: gasOverride || gas,
+  gasPrice: gasPriceOverride || gasPrice,
+  to: toOverride || to,
+  from,
+  data,
+  value
+}));
+
+const getContractAddressFromTx = compose(
+  eth.getTransactionReceipt,
+  property('contractAddress')
+);
+
 const wallet = generate();
 
 const ETH_ADDRESS = '0x' + Array(41).join(0);
 
+const uninitialized = () => Promise.reject(Error('Not initialized'));
+
 describe('IDEX contract v2', () => {
   let from, gas, gasPrice, exchangeContract, accounts;
-  let getCurrentContractBalance = curryN(2, () => Promise.reject(Error('Not initialized')));
+  let getCurrentContractBalance = curryN(2, uninitialized);
+  let createContract = uninitialized, sendTx = uninitialized, sendEther = uninitialized, createContractFromFile = uninitialized, sendExchangeTx = uninitialized;
   before(() => eth.getAccounts()
     .then((_accounts) => (accounts = _accounts))
     .then(([ _from ]) => (from = _from))
@@ -56,31 +90,34 @@ describe('IDEX contract v2', () => {
     .then(() => eth.getBlock('pending'))
     .then(property('gasLimit'))
     .then((_gas) => (gas = _gas))
-    .then(() => eth.sendTransaction({
+    .then(() => {
+      createContract = compose(sendTxCurried({ gas, gasPrice })(undefined), getContractAddressFromTx);
+      createContractFromFile = compose(
+        util.readFileAsUtf8,
+        bindKey(JSON, 'parse'),
+        util.addHexPrefix,
+        (data) => ({
+          from,
+          data
+        }),
+        createContract
+      )
+      sendTx = sendTxCurried({ gas, gasPrice });
+      sendEther = sendTx(undefined); 
+    })
+    .then(() => sendEther({
       to: wallet.getAddressString(),
       from,
       value: unitMap.ether
     }))
-    .then(() => util.readFileAsUtf8(join(__dirname, '..', 'Exchange.bytecode')))
-    .then(bindKey(JSON, 'parse'))
-    .then(util.addHexPrefix)
-    .then((data) => eth.sendTransaction({
-      from,
-      gas,
-      gasPrice,
-      data
-    }))
-    .then(eth.getTransactionReceipt)
-    .then(property('contractAddress'))
+    .then(() => createContractFromFile('Exchange.bytecode'))
     .then((contractAddress) => (exchangeContract = contractAddress))
-    .then((contractAddress) => (getCurrentContractBalance = getContractBalance(contractAddress))));
+    .then((contractAddress) => (getCurrentContractBalance = getContractBalance(contractAddress)))
+    .then(() => { sendExchangeTx = sendTx(exchangeContract); }));
 
   describe('deposit proxy', () => {
-    let proxy;
-    before(() => eth.sendTransaction({
-      to: exchangeContract,
-      gas,
-      gasPrice,
+    let proxy, sendProxyTx = uninitialized;
+    before(() => sendExchangeTx({
       from: accounts[1],
       data: eth.encodeFunctionCall({
         name: 'createDepositProxy',
@@ -95,13 +132,12 @@ describe('IDEX contract v2', () => {
         name: 'proxyAddress'
       }], receipt.logs[0].data, [ receipt.logs[0].topics[0] ]))
       .then(property('proxyAddress'))
-      .then((_proxy) => (proxy = _proxy)));
+      .then((_proxy) => (proxy = _proxy))
+      .then(() => (sendProxyTx = sendTx(proxy))));
 
-    it('should forward ether deposits', () => eth.sendTransaction({
+    it('should forward ether deposits', () => sendEther({
         to: proxy,
         from,
-        gas,
-        gasPrice,
         value: unitMap.ether
       }).then(() => eth.call({
         to: exchangeContract,
@@ -121,11 +157,8 @@ describe('IDEX contract v2', () => {
   });
   
   describe('transfer fn', () => {
-    it('should transfer funds to another wallet', () => eth.sendTransaction({
+    it('should transfer funds to another wallet', () => sendExchangeTx({
         from: accounts[1],
-        to: exchangeContract,
-        gasPrice,
-        gas,
         data: eth.encodeFunctionCall({
           name: 'deposit',
           inputs: [{
@@ -172,11 +205,8 @@ describe('IDEX contract v2', () => {
           r,
           s
         } = mapValues(ecsign(toBuffer(salted), wallet.getPrivateKey()), (v, k) => k === 'v' ? v : bufferToHex(v));
-        return eth.sendTransaction({
-          to: exchangeContract,
+        return sendExchangeTx({
           from,
-          gas,
-          gasPrice,
           data: eth.encodeFunctionCall({
             name: 'transfer',
             inputs: [{
@@ -239,11 +269,8 @@ describe('IDEX contract v2', () => {
       .then(util.toBN)
       .then(method('toPrecision'))
       .then((result) => expect(result).to.eql('0')));
-    it('should cap regular withdrawals at 10% fee', () => eth.sendTransaction({
-      to: exchangeContract,
+    it('should cap regular withdrawals at 10% fee', () => sendExchangeTx({
       from,
-      gasPrice,
-      gas,
       data: eth.encodeFunctionCall({
         name: 'deposit',
         inputs: [{
@@ -290,11 +317,8 @@ describe('IDEX contract v2', () => {
         t: 'uint256',
         v: nonce
       }]))), wallet.getPrivateKey()), (v, k) => k === 'v' ? v : bufferToHex(v));
-      return eth.sendTransaction({
+      return sendExchangeTx({
         from,
-        gas,
-        gasPrice,
-        to: exchangeContract,
         data: eth.encodeFunctionCall(exchangeInterface.find(({ name } ) => name === 'adminWithdraw'), [
           token,
           amount,
@@ -312,11 +336,8 @@ describe('IDEX contract v2', () => {
         .then(() => eth.getBalance(accounts[3]))
         .then((balance) => expect(util.toBN(balance).minus(previousBalance).toPrecision()).to.eql(util.toBN('900').times(unitMap.finney).toPrecision()));
     }));
-    it('should allow an uncapped fee for withdrawals', () => eth.sendTransaction({
-      to: exchangeContract,
+    it('should allow an uncapped fee for withdrawals', () => sendExchangeTx({
       from,
-      gasPrice,
-      gas,
       data: eth.encodeFunctionCall({
         name: 'deposit',
         inputs: [{
@@ -363,11 +384,8 @@ describe('IDEX contract v2', () => {
         t: 'uint256',
         v: nonce
       }]))), wallet.getPrivateKey()), (v, k) => k === 'v' ? v : bufferToHex(v));
-      return eth.sendTransaction({
+      return sendExchangeTx({
         from,
-        gas,
-        gasPrice,
-        to: exchangeContract,
         data: eth.encodeFunctionCall(exchangeInterface.find(({ name } ) => name === 'adminWithdraw'), [
           token,
           amount,
