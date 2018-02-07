@@ -144,6 +144,7 @@ contract DepositProxy is AddressToBytes {
   function receiveApproval(address from, uint256 tokens, address token, bytes data) public {
     require(token == msg.sender);
     require(from == beneficiary);
+    require(Token(msg.sender).transferFrom(from, this, tokens));
     approveAndDeposit(token, tokens);
   }
   function depositAll(address token) {
@@ -196,9 +197,10 @@ contract Exchange is SafeMath, Owned, BytesToAddress {
   mapping (address => uint256) public invalidOrder;
   event ProxyCreated(address beneficiary, address proxyAddress);
   function createDepositProxy(address target) external returns (address proxyAddress) {
-    if (target == 0x0) target = msg.sender;
-    DepositProxy dp = new DepositProxy(this, target);
-    ProxyCreated(target, address(dp));
+    address trueTarget = target;
+    if (target == 0x0) trueTarget = msg.sender;
+    DepositProxy dp = new DepositProxy(this, trueTarget);
+    ProxyCreated(trueTarget, address(dp));
     return address(dp);
   }
   function invalidateOrdersBefore(address user, uint256 nonce) onlyAdmin {

@@ -91,6 +91,25 @@
   "type": "function"
  },
  {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "target",
+    "type": "address"
+   }
+  ],
+  "name": "createDepositProxy",
+  "outputs": [
+   {
+    "name": "proxyAddress",
+    "type": "address"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
   "constant": true,
   "inputs": [
    {
@@ -301,20 +320,6 @@
   ],
   "payable": false,
   "stateMutability": "view",
-  "type": "function"
- },
- {
-  "constant": false,
-  "inputs": [],
-  "name": "createDepositProxy",
-  "outputs": [
-   {
-    "name": "proxyAddress",
-    "type": "address"
-   }
-  ],
-  "payable": false,
-  "stateMutability": "nonpayable",
   "type": "function"
  },
  {

@@ -79,7 +79,7 @@ const ETH_ADDRESS = '0x' + Array(41).join(0);
 const uninitialized = () => Promise.reject(Error('Not initialized'));
 
 describe('IDEX contract v2', () => {
-  let from, gas, gasPrice, exchangeContract, accounts;
+  let from, gas, gasPrice, exchangeContract, accounts, erc20Contract;
   let getCurrentContractBalance = curryN(2, uninitialized);
   let createContract = uninitialized, sendTx = uninitialized, sendEther = uninitialized, createContractFromFile = uninitialized, sendExchangeTx = uninitialized;
   before(() => eth.getAccounts()
@@ -113,6 +113,8 @@ describe('IDEX contract v2', () => {
     .then(() => createContractFromFile('Exchange.bytecode'))
     .then((contractAddress) => (exchangeContract = contractAddress))
     .then((contractAddress) => (getCurrentContractBalance = getContractBalance(contractAddress)))
+    .then(() => createContractFromFile('ERC20.bytecode'))
+    .then((tokenContract) => (erc20Contract = tokenContract))
     .then(() => { sendExchangeTx = sendTx(exchangeContract); }));
 
   describe('deposit proxy', () => {
@@ -154,6 +156,24 @@ describe('IDEX contract v2', () => {
       }).then(util.toBN)
         .then(method('toPrecision'))
         .then((result) => expect(result).to.eql(unitMap.ether))));
+    it('should forward ERC-20 deposits', () => sendTx(erc20Contract)({
+      from,
+      data: eth.encodeFunctionCall({
+        name: 'approveAndCall',
+        inputs: [{
+          name: 'spender',
+          type: 'address'
+        }, {
+          name: 'amount',
+          type: 'uint256'
+        }, {
+          name: 'data',
+          type: 'bytes'
+        }]
+      }, [ proxy, '1' + Array(19).join(0), '0x' ])
+    }).then(() => getCurrentExchangeBalance(from, erc20Contract))
+      .then(method('toPrecision'))
+      .then((amt) => expect(amt).to.eql('1' + Array(19).join(0))));
   });
   
   describe('transfer fn', () => {

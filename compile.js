@@ -5,7 +5,9 @@ const src = require('fs').readFileSync('./Exchange.sol', 'utf8');
 
 const out = solc.compile(src, 1);
 if (out.errors) {
-  console.log(out.errors);
+  out.errors.forEach((v) => {
+    console.log(v);
+  });
 }
 const Exchange = out.contracts[':Exchange'];
 
