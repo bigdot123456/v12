@@ -265,11 +265,8 @@ contract Exchange is Owned {
     require(tokens[token][msg.sender] >= amount);
     tokens[token][msg.sender] = tokens[token][msg.sender].sub(amount);
     protectedFunds[token] = protectedFunds[token].sub(amount);
-    if (token == address(0)) {
-      require(target.send(amount));
-    } else {
-      require(Token(token).transfer(target, amount));
-    }
+    if (token == address(0)) require(target.send(amount));
+    else require(Token(token).transfer(target, amount));
     Withdraw(token, msg.sender, amount, tokens[token][msg.sender]);
     return true;
   }
@@ -305,11 +302,8 @@ contract Exchange is Owned {
     tokens[token][feeAccount] = tokens[token][feeAccount].add(fee);
     amount = amount - fee;
     protectedFunds[token] = protectedFunds[token].sub(amount);
-    if (token == address(0)) {
-      require(target.send(amount));
-    } else {
-      require(Token(token).transfer(target, amount));
-    }
+    if (token == address(0)) require(target.send(amount));
+    else require(Token(token).transfer(target, amount));
     lastActiveTransaction[user][token] = block.number;
     return true;
   }

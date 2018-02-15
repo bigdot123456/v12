@@ -601,27 +601,7 @@ describe('IDEX contract v2', () => {
           type: 'uint256'
         }]
       }, [ exchangeContract, unitMap.ether ])
-    })).then(() => eth.call({
-      to: exchangeContract,
-      data: eth.encodeFunctionCall({
-        name: 'protectedFunds',
-        inputs: [{
-          name: 'token',
-          type: 'address'
-        }]
-      }, [ erc20Contract ])
-    }).then((amount) => util.toBN(amount).toPrecision())
-      .then((amount) => expect(amount).to.eql(unitMap.ether)))
-    .then(() => eth.call({
-      to: erc20Contract,
-      data: eth.encodeFunctionCall({
-        name: 'balanceOf',
-        inputs: [{
-          name: 'holder',
-          type: 'address'
-        }]
-      }, [ exchangeContract ])
-    }).then(util.toBN).then(method('toPrecision')).then((amount) => expect(amount).to.eql('2' + unitMap.ether.substr(1))))
+    }))
     .then(() => sendExchangeTx({
       from,
       data: eth.encodeFunctionCall({
