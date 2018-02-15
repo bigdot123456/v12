@@ -156,7 +156,7 @@ contract Exchange is Owned {
   event ProxyCreated(address beneficiary, address proxyAddress);
   function createDepositProxy(address target) public returns (address) {
     if (target == 0x0) target = msg.sender;
-    DepositProxy dp = new DepositProxy(this, target);
+    address dp = address(new DepositProxy(this, target));
     ProxyCreated(target, address(dp));
     return address(dp);
   }

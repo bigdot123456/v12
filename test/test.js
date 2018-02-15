@@ -651,4 +651,7 @@ describe('IDEX contract v2', () => {
       ])
     })));
   });
+  describe('trade function', () => {
+    it('should execute a trade properly', () => ({}));
+  });
 });
