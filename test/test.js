@@ -6,8 +6,10 @@ const { join } = require('path');
 const util = require('./util');
 const { generate } = require('ethereumjs-wallet');
 const BN = require('bignumber.js');
+const Transaction = require('ethereumjs-tx');
 const {
   unitMap,
+  fromDecimal,
   soliditySha3
 } = require('web3-utils');
 const {
@@ -68,7 +70,29 @@ const sendTxCurried = curryN(3, ({
   value
 }));
 
-
+const sendOfflineTx = ({
+  data,
+  value,
+  to,
+  from,
+  pk
+}) => Promise.all([
+  eth.getTransactionCount(from, 'pending'),
+  eth.getBlock('pending').then(property('gasLimit')),
+  eth.getGasPrice()
+]).then(([ nonce, gas, gasPrice ]) => {
+  const tx = new Transaction(util.ln({
+    gasLimit: fromDecimal(gas),
+    gasPrice: fromDecimal(gasPrice),
+    nonce: fromDecimal(nonce),
+    data,
+    from,
+    to,
+    value: fromDecimal(value)
+  }));
+  tx.sign(pk);
+  return eth.sendSignedTransaction(bufferToHex(tx.serialize()));
+});
 
 const getContractAddressFromTx = compose(
   eth.getTransactionReceipt,
@@ -80,6 +104,9 @@ const wallet = generate();
 const ETH_ADDRESS = '0x' + Array(41).join(0);
 
 const uninitialized = () => Promise.reject(Error('Not initialized'));
+
+const makerWallet = generate();
+const takerWallet = generate();
 
 describe('IDEX contract v2', () => {
   let from, gas, gasPrice, exchangeContract, accounts, erc20Contract, eip777Contract, erc223Contract, erc223Contract2;
@@ -652,6 +679,58 @@ describe('IDEX contract v2', () => {
     })));
   });
   describe('trade function', () => {
-    it('should execute a trade properly', () => ({}));
+    before(() => sendEther({
+      from,
+      to: makerWallet.getAddressString(),
+      value: unitMap.ether
+    }).then(() => sendEther({
+      from,
+      to: takerWallet.getAddressString(),
+      value: unitMap.ether
+    })).then(() => sendTx(erc20Contract)({
+      from,
+      data: eth.encodeFunctionCall({
+        name: 'transfer',
+        inputs: [{
+          name: 'beneficiary',
+          type: 'address'
+        }, {
+          name: 'amount',
+          type: 'uint256'
+        }]
+      }, [ makerWallet.getAddressString(), unitMap.ether ])
+    }))
+    .then(() => sendOfflineTx({
+      from: takerWallet.getAddressString(),
+      to: exchangeContract,
+      data: eth.encodeFunctionCall({
+        name: 'deposit',
+        inputs: [{
+          type: 'address',
+          name: 'beneficiary'
+        }]
+      }, [ ETH_ADDRESS ]),
+      value: new BN(unitMap.ether).div(2).toPrecision(),
+      pk: takerWallet.getPrivateKey()
+    })).then(() => util.ln('woop')).then(() => sendOfflineTx({
+      from: makerWallet.getAddressString(),
+      to: erc20Contract,
+      data: eth.encodeFunctionCall({
+        name: 'approveAndCall',
+        inputs: [{
+          name: 'beneficiary',
+          type: 'address'
+        }, {
+          name: 'amount',
+          type: 'uint256'
+        }, {
+          name: 'data',
+          type: 'bytes'
+        }]
+      }, [ exchangeContract, unitMap.ether, '0x' ]),
+      value: '0',
+      pk: makerWallet.getPrivateKey()
+    })));
+    it('works', () => ({}));
   });
 });
