@@ -122,15 +122,6 @@
  {
   "constant": false,
   "inputs": [],
-  "name": "AURA",
-  "outputs": [],
-  "payable": false,
-  "stateMutability": "nonpayable",
-  "type": "function"
- },
- {
-  "constant": false,
-  "inputs": [],
   "name": "lockBalances",
   "outputs": [],
   "payable": false,
@@ -371,6 +362,12 @@
   "payable": false,
   "stateMutability": "view",
   "type": "function"
+ },
+ {
+  "inputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "constructor"
  },
  {
   "anonymous": false,

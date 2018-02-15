@@ -9,26 +9,26 @@ contract Token {
     bool public allowTransactions;
     mapping (address => uint256) public balanceOf;
     mapping (address => mapping (address => uint256)) public allowance;
-    function transfer(address _to, uint256 _value) returns (bool success);
-    function approveAndCall(address _spender, uint256 _value, bytes _extraData) returns (bool success);
-    function approve(address _spender, uint256 _value) returns (bool success);
-    function transferFrom(address _from, address _to, uint256 _value) returns (bool success);
+    function transfer(address _to, uint256 _value) external returns (bool);
+    function approveAndCall(address _spender, uint256 _value, bytes _extraData) external returns (bool);
+    function approve(address _spender, uint256 _value) external returns (bool);
+    function transferFrom(address _from, address _to, uint256 _value) external returns (bool);
 }
 
 interface EIP777 {
-    function name() public constant returns (string);
-    function symbol() public constant returns (string);
-    function granularity() public constant returns (uint256);
-    function totalSupply() public constant returns (uint256);
-    function balanceOf(address owner) public constant returns (uint256);
+    function name() external constant returns (string);
+    function symbol() external constant returns (string);
+    function granularity() external constant returns (uint256);
+    function totalSupply() external constant returns (uint256);
+    function balanceOf(address owner) external constant returns (uint256);
 
-    function send(address to, uint256 value) public;
-    function send(address to, uint256 value, bytes userData) public;
+    function send(address to, uint256 value) external;
+    function send(address to, uint256 value, bytes userData) external;
 
-    function authorizeOperator(address operator) public;
-    function revokeOperator(address operator) public;
-    function isOperatorFor(address operator, address tokenHolder) public constant returns (bool);
-    function operatorSend(address from, address to, uint256 value, bytes userData, bytes operatorData) public;
+    function authorizeOperator(address operator) external;
+    function revokeOperator(address operator) external;
+    function isOperatorFor(address operator, address tokenHolder) external constant returns (bool);
+    function operatorSend(address from, address to, uint256 value, bytes userData, bytes operatorData) external;
 
     event Sent(address indexed from, address indexed to, uint256 value, address indexed operator, bytes userData, bytes operatorData);
     event Minted(address indexed to, uint256 amount, address indexed operator, bytes operatorData);
@@ -37,66 +37,22 @@ interface EIP777 {
     event RevokedOperator(address indexed operator, address indexed tokenHolder);
 }
 
-contract ERC233 {
-  function transfer(address target, uint256 amount, bytes data);
+interface ERC223 {
+  function transfer(address target, uint256 amount, bytes data) external returns (bool);
 }
 
-contract InterfaceImplementationRegistry {
-
-    mapping (address => mapping(bytes32 => address)) interfaces;
-    mapping (address => address) public managers;
-
-    modifier canManage(address addr) {
-        require(msg.sender == addr || msg.sender == managers[addr]);
-        _;
-    }
-
-    function interfaceHash(string interfaceName) public pure returns(bytes32) {
-        return keccak256(interfaceName);
-    }
-
-
-    /// @notice Query if an address implements an interface and thru which contract
-    /// @param addr Address that is being queried for the implementation of an interface
-    /// @param iHash SHA3 of the name of the interface as a string
-    ///  Example `web3.utils.sha3('Ierc777`')`
-    /// @return The address of the contract that implements a speficic interface
-    ///  or 0x0 if `addr` does not implement this interface
-    function getInterfaceImplementer(address addr, bytes32 iHash) public constant returns (address) {
-        return interfaces[addr][iHash];
-    }
-
-    /// @notice Sets the contract that will handle a specific interface; only
-    ///  the address itself or a `manager` defined for that address can set it
-    /// @param addr Address that you want to define the interface for
-    /// @param iHash SHA3 of the name of the interface as a string
-    ///  For example `web3.utils.sha3('Ierc777')` for the Ierc777
-    function setInterfaceImplementer(address addr, bytes32 iHash, address implementer) public canManage(addr)  {
-        interfaces[addr][iHash] = implementer;
-        InterfaceImplementerSet(addr, iHash, implementer);
-    }
-
-    /// @notice Sets an external `manager` that will be able to call `setInterfaceImplementer()`
-    ///  on behalf of the address.
-    /// @param addr Address that you are defining the manager for.
-    /// @param newManager The address of the manager for the `addr` that will replace
-    ///  the old one.  Set to 0x0 if you want to remove the manager.
-    function changeManager(address addr, address newManager) public canManage(addr) {
-        managers[addr] = newManager;
-        ManagerChanged(addr, newManager);
-    }
-
-    event InterfaceImplementerSet(address indexed addr, bytes32 indexed interfaceHash, address indexed implementer);
-    event ManagerChanged(address indexed addr, address indexed newManager);
+interface InterfaceImplementationRegistry {
+  function setInterfaceImplementer(address addr, bytes32 iHash, address implementer) external;
 }
 
-contract DepositReceiver {
-  function deposit(address target) payable;
-  function depositToken(address token, address target, uint256 amount);
+interface DepositReceiver {
+  function deposit(address target) external payable returns (bool);
+  function depositToken(address token, address target, uint256 amount) external returns (bool);
 }
 
-contract BytesToAddress {
-  function bytesToAddress(bytes _address) public returns (address) {
+library BytesToAddress {
+  function toAddress(bytes _address) internal pure returns (address) {
+    if (_address.length < 20) return address(0);
     uint160 m = 0;
     uint160 b = 0;
     for (uint8 i = 0; i < 20; i++) {
@@ -108,8 +64,8 @@ contract BytesToAddress {
   }
 }
 
-contract AddressToBytes {
-  function addressToBytes(address a) constant returns (bytes b) {
+library AddressToBytes {
+  function toBytes(address a) internal pure returns (bytes b) {
      assembly {
         let m := mload(0x40)
         mstore(add(m, 20), xor(0x140000000000000000000000000000000000000000, a))
@@ -119,36 +75,40 @@ contract AddressToBytes {
   }
 }
 
-contract DepositProxy is AddressToBytes {
+contract DepositProxy {
+  using AddressToBytes for address;
   address public beneficiary;
   address public exchange;
   event Deposit(address token, uint256 amount);
-  function DepositProxy(address _exchange, address _beneficiary) {
+  function DepositProxy(address _exchange, address _beneficiary) public {
     exchange = _exchange;
     beneficiary = _beneficiary;
+    registerEIP777Interface();
   }
-  function tokenFallback(address sender, uint256 amount, bytes data) {
-    ERC233(msg.sender).transfer(exchange, amount, addressToBytes(beneficiary));
+  function tokenFallback(address /* sender */, uint256 amount, bytes /* data */) public {
+    require(ERC223(msg.sender).transfer(exchange, amount, beneficiary.toBytes()));
     Deposit(msg.sender, amount);
   }
-  function tokensReceived(address from, address to, uint256 amount, bytes userData, address operator, bytes operatorData) public {
+  function tokensReceived(address /* from */, address to, uint256 amount, bytes /* userData */, address /* operator */, bytes /* operatorData */) public {
     require(to == address(this));
-    EIP777(msg.sender).send(exchange, amount, addressToBytes(beneficiary));
+    EIP777(msg.sender).send(exchange, amount, beneficiary.toBytes());
     Deposit(msg.sender, amount);
   }
   function approveAndDeposit(address token, uint256 amount) internal {
-    Token(token).approve(exchange, amount);
-    DepositReceiver(exchange).depositToken(token, beneficiary, amount);
+    require(Token(token).approve(exchange, amount));
+    require(DepositReceiver(exchange).depositToken(token, beneficiary, amount));
     Deposit(token, amount);
   }
-  function receiveApproval(address from, uint256 tokens, address token, bytes data) public {
-    require(token == msg.sender);
-    require(from == beneficiary);
-    require(Token(msg.sender).transferFrom(from, this, tokens));
-    approveAndDeposit(token, tokens);
+  function receiveApproval(address _from, uint256 _tokens, address _token, bytes /* _data */) public {
+    require(_token == msg.sender);
+    require(Token(_token).transferFrom(_from, this, _tokens));
+    approveAndDeposit(_token, _tokens);
   }
-  function depositAll(address token) {
+  function depositAll(address token) public {
     approveAndDeposit(token, Token(token).balanceOf(this));
+  }
+  function registerEIP777Interface() internal {
+    InterfaceImplementationRegistry(0x9aA513f1294c8f1B254bA1188991B4cc2EFE1D3B).setInterfaceImplementer(this, keccak256("ITokenRecipient"), this);
   }
   function () external payable {
     DepositReceiver(exchange).deposit.value(msg.value)(beneficiary);
@@ -156,26 +116,26 @@ contract DepositProxy is AddressToBytes {
   }
 }
 
-contract SafeMath {
-  function safeMul(uint a, uint b) returns (uint) {
-    uint c = a * b;
+library SafeMath {
+  function mul(uint256 a, uint256 b) internal pure returns (uint256) {
+    uint256 c = a * b;
     require(a == 0 || c / a == b);
     return c;
   }
-  function safeSub(uint a, uint b) returns (uint) {
+  function sub(uint256 a, uint256 b) internal pure returns (uint256) {
     require(b <= a);
     return a - b;
   }
-  function safeAdd(uint a, uint b) returns (uint) {
-    uint c = a + b;
-    require(c>=a && c>=b);
+  function add(uint256 a, uint256 b) internal pure returns (uint256) {
+    uint256 c = a + b;
+    require(c >= a && c >= b);
     return c;
   }
 }
 
 contract Owned {
   address public owner;
-  function Owned() {
+  function Owned() public {
     owner = msg.sender;
   }
   event SetOwner(address indexed previousOwner, address indexed newOwner);
@@ -183,28 +143,25 @@ contract Owned {
     require(msg.sender == owner);
     _;
   }
-  function setOwner(address newOwner) onlyOwner {
+  function setOwner(address newOwner) public onlyOwner {
     SetOwner(owner, newOwner);
     owner = newOwner;
   }
-  function getOwner() returns (address out) {
-    return owner;
-  }
 }
 
-contract Exchange is SafeMath, Owned, BytesToAddress {
-  string constant TRANSFER_SALT = "\x19IDEX Signed Transfer:\n32";
+contract Exchange is Owned {
+  using BytesToAddress for bytes;
+  using SafeMath for uint256;
   mapping (address => uint256) public invalidOrder;
   event ProxyCreated(address beneficiary, address proxyAddress);
-  function createDepositProxy(address target) external returns (address proxyAddress) {
-    address trueTarget = target;
-    if (target == 0x0) trueTarget = msg.sender;
-    DepositProxy dp = new DepositProxy(this, trueTarget);
-    ProxyCreated(trueTarget, address(dp));
+  function createDepositProxy(address target) public returns (address) {
+    if (target == 0x0) target = msg.sender;
+    DepositProxy dp = new DepositProxy(this, target);
+    ProxyCreated(target, address(dp));
     return address(dp);
   }
-  function invalidateOrdersBefore(address user, uint256 nonce) onlyAdmin {
-    if (nonce < invalidOrder[user]) throw;
+  function invalidateOrdersBefore(address user, uint256 nonce) public onlyAdmin {
+    require(nonce >= invalidOrder[user]);
     invalidOrder[user] = nonce;
   }
 
@@ -214,7 +171,7 @@ contract Exchange is SafeMath, Owned, BytesToAddress {
   mapping (address => mapping (address => uint256)) public lastActiveTransaction; // address to token to timestamp
   mapping (bytes32 => uint256) public orderFills;
   address public feeAccount;
-  uint256 public inactivityReleasePeriod;
+  uint256 public inactivityReleasePeriod = 100000;
   mapping (bytes32 => bool) public traded;
   mapping (bytes32 => bool) public withdrawn;
   mapping (bytes32 => bool) public transferred;
@@ -225,159 +182,172 @@ contract Exchange is SafeMath, Owned, BytesToAddress {
   event Withdraw(address token, address user, uint256 amount, uint256 balance);
   event Transfer(address token, address recipient);
 
-  function setInactivityReleasePeriod(uint256 expiry) onlyAdmin returns (bool success) {
-    if (expiry > 1000000) throw;
+  function setInactivityReleasePeriod(uint256 expiry) public onlyAdmin returns (bool) {
+    require(expiry <= 1000000);
     inactivityReleasePeriod = expiry;
     return true;
   }
 
-  function Exchange(address feeAccount_) {
+  function Exchange(address feeAccount_) public {
     feeAccount = feeAccount_;
-    inactivityReleasePeriod = 100000;
+    registerEIP777Interface();
   }
 
-  function setThirdPartyDepositorDisabled(bool disabled) external returns (bool success) {
+  function setThirdPartyDepositorDisabled(bool disabled) external returns (bool) {
     thirdPartyDepositorDisabled[msg.sender] = disabled;
     return true;
   }
 
-  function withdrawUnprotectedFunds(address token, address target, uint256 amount, bool isEIP777) onlyOwner returns (bool success) {
-    require(safeSub(Token(token).balanceOf(this), protectedFunds[token]) <= amount);
+  function withdrawUnprotectedFunds(address token, address target, uint256 amount, bool isEIP777) public onlyOwner returns (bool) {
+    require(Token(token).balanceOf(this).sub(protectedFunds[token]) >= amount);
     if (isEIP777) EIP777(token).send(target, amount);
-    else Token(token).transfer(target, amount);
+    else require(Token(token).transfer(target, amount));
     return true;
   }
 
-  function setAdmin(address admin, bool isAdmin) onlyOwner {
+  function setAdmin(address admin, bool isAdmin) public onlyOwner {
     admins[admin] = isAdmin;
   }
 
   modifier onlyAdmin {
-    if (msg.sender != owner && !admins[msg.sender]) throw;
+    require(msg.sender == owner || admins[msg.sender]);
     _;
   }
 
-  function depositToken(address token, address target, uint256 amount) {
+  function depositToken(address token, address target, uint256 amount) public returns (bool) {
     require(target != 0x0);
     require(acceptDeposit(token, target, amount));
     require(Token(token).transferFrom(msg.sender, this, amount));
+    return true;
   }
 
-  function acceptDeposit(address token, address target, uint256 amount) internal returns (bool success) {
+  function acceptDeposit(address token, address target, uint256 amount) internal returns (bool) {
     require(!thirdPartyDepositorDisabled[msg.sender] || msg.sender == target);
-    tokens[token][target] = safeAdd(tokens[token][target], amount);
-    protectedFunds[token] = safeAdd(protectedFunds[token], amount);
+    tokens[token][target] = tokens[token][target].add(amount);
+    protectedFunds[token] = protectedFunds[token].add(amount);
     lastActiveTransaction[target][token] = block.number;
     Deposit(token, target, amount, tokens[token][target]);
     return true;
   }
     
-  function deposit(address target) payable {
+  function deposit(address target) public payable returns (bool) {
     require(target != 0x0);
     require(acceptDeposit(0x0, target, msg.value));
+    return true;
   }
 
-  function tokenFallback(address target, uint256 amount, bytes data) {
-    address beneficiary = bytesToAddress(data);
+  function tokenFallback(address target, uint256 amount, bytes data) public {
+    address beneficiary = data.toAddress();
     if (beneficiary != 0x0) target = beneficiary;
     require(acceptDeposit(msg.sender, target, amount));
   }
 
-  function tokensReceived(address from, address to, uint256 amount, bytes userData, address operator, bytes operatorData) public {
+  function receiveApproval(address _from, uint256 _tokens, address _token, bytes /* _data */) public {
+    require(_token == msg.sender);
+    require(Token(_token).transferFrom(_from, this, _tokens));
+    require(acceptDeposit(_token, _from, _tokens));
+  }
+
+  function tokensReceived(address from, address to, uint256 amount, bytes userData, address /* operator */, bytes /* operatorData */) public {
     require(to == address(this));
-    address beneficiary = bytesToAddress(userData);
+    address beneficiary = userData.toAddress();
     if (beneficiary != 0x0) from = beneficiary;
     require(acceptDeposit(msg.sender, from, amount));
   }
-
-  function registerEIP777Interface() onlyOwner {
-    InterfaceImplementationRegistry(0x94405C3223089A942B7597dB96Dc60FcA17B0E3A).setInterfaceImplementer(this, keccak256("Ierc777"), this);
+    
+  function registerEIP777Interface() internal {
+    InterfaceImplementationRegistry(0x9aA513f1294c8f1B254bA1188991B4cc2EFE1D3B).setInterfaceImplementer(this, keccak256("ITokenRecipient"), this);
   }
 
-  function withdraw(address token, address target, uint256 amount) returns (bool success) {
+  function withdraw(address token, address target, uint256 amount) public returns (bool) {
     require(target != 0x0);
-    if (safeSub(block.number, lastActiveTransaction[msg.sender][token]) < inactivityReleasePeriod) throw;
-    if (tokens[token][msg.sender] < amount) throw;
-    tokens[token][msg.sender] = safeSub(tokens[token][msg.sender], amount);
-    protectedFunds[token] = safeSub(protectedFunds[token], amount);
+    require(block.number.sub(lastActiveTransaction[msg.sender][token]) >= inactivityReleasePeriod);
+    require(tokens[token][msg.sender] >= amount);
+    tokens[token][msg.sender] = tokens[token][msg.sender].sub(amount);
+    protectedFunds[token] = protectedFunds[token].sub(amount);
     if (token == address(0)) {
-      if (!target.send(amount)) throw;
+      require(target.send(amount));
     } else {
-      if (!Token(token).transfer(target, amount)) throw;
+      require(Token(token).transfer(target, amount));
     }
     Withdraw(token, msg.sender, amount, tokens[token][msg.sender]);
     return true;
   }
 
-  function withdrawEIP777(address token, address target, uint256 amount) returns (bool success) {
+  function withdrawEIP777(address token, address target, uint256 amount) public returns (bool) {
     require(target != 0x0);
-    if (safeSub(block.number, lastActiveTransaction[msg.sender][token]) < inactivityReleasePeriod) throw;
-    if (tokens[token][msg.sender] < amount) throw;
-    tokens[token][msg.sender] = safeSub(tokens[token][msg.sender], amount);
-    amount = amount - (amount % EIP777(token).granularity());
-    protectedFunds[token] = safeSub(protectedFunds[token], amount);
+    require(block.number.sub(lastActiveTransaction[msg.sender][token]) >= inactivityReleasePeriod);
+    require(tokens[token][msg.sender] >= amount);
+    tokens[token][msg.sender] = tokens[token][msg.sender].sub(amount);
+    amount = amount.sub(amount % EIP777(token).granularity());
+    protectedFunds[token] = protectedFunds[token].sub(amount);
     EIP777(token).send(target, amount);
     Withdraw(token, msg.sender, amount, tokens[token][msg.sender]);
     return true;
   }
 
-  function adminWithdraw(address token, uint256 amount, address user, address target, bool authorizeArbitraryFee, uint256 nonce, uint8 v, bytes32 r, bytes32 s, uint256 feeWithdrawal) onlyAdmin returns (bool success) {
-    require(target != 0x0);
+  function validateWithdrawalSignature(address token, uint256 amount, address user, address target, bool authorizeArbitraryFee, uint256 nonce, uint8 v, bytes32 r, bytes32 s) internal returns (bool) {
     bytes32 hash = keccak256(this, token, amount, user, target, authorizeArbitraryFee, nonce);
-    if (withdrawn[hash]) throw;
+    require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", hash), v, r, s) == user);
+    require(!withdrawn[hash]);
     withdrawn[hash] = true;
-    if (ecrecover(keccak256("\x19Ethereum Signed Message:\n32", hash), v, r, s) != user) throw;
+    return true;
+  }
+
+  function adminWithdraw(address token, uint256 amount, address user, address target, bool authorizeArbitraryFee, uint256 nonce, uint8 v, bytes32 r, bytes32 s, uint256 feeWithdrawal) public onlyAdmin returns (bool) {
+    require(target != 0x0);
+    require(validateWithdrawalSignature(token, amount, user, target, authorizeArbitraryFee, nonce, v, r, s));
     if (feeWithdrawal > 100 finney && !authorizeArbitraryFee) feeWithdrawal = 100 finney;
     require(feeWithdrawal <= 1 ether);
-    if (tokens[token][user] < amount) throw;
-    tokens[token][user] = safeSub(tokens[token][user], amount);
-    uint256 fee = safeMul(feeWithdrawal, amount) / 1 ether;
-    tokens[token][feeAccount] = safeAdd(tokens[token][feeAccount], fee);
+    require(tokens[token][user] >= amount);
+    tokens[token][user] = tokens[token][user].sub(amount);
+    uint256 fee = feeWithdrawal.mul(amount) / 1 ether;
+    tokens[token][feeAccount] = tokens[token][feeAccount].add(fee);
     amount = amount - fee;
-    protectedFunds[token] = safeSub(protectedFunds[token], amount);
+    protectedFunds[token] = protectedFunds[token].sub(amount);
     if (token == address(0)) {
-      if (!target.send(amount)) throw;
+      require(target.send(amount));
     } else {
-      if (!Token(token).transfer(target, amount)) throw;
+      require(Token(token).transfer(target, amount));
     }
     lastActiveTransaction[user][token] = block.number;
+    return true;
   }
-  function adminWithdrawEIP777(address token, uint256 amount, address user, address target, bool authorizeArbitraryFee, uint256 nonce, uint8 v, bytes32 r, bytes32 s, uint256 feeWithdrawal) onlyAdmin returns (bool success) {
+  function adminWithdrawEIP777(address token, uint256 amount, address user, address target, bool authorizeArbitraryFee, uint256 nonce, uint8 v, bytes32 r, bytes32 s, uint256 feeWithdrawal) public onlyAdmin returns (bool) {
     require(target != 0x0);
-    bytes32 hash = keccak256(this, token, amount, user, target, authorizeArbitraryFee, nonce);
-    if (withdrawn[hash]) throw;
-    withdrawn[hash] = true;
-    if (ecrecover(keccak256("\x19Ethereum Signed Message:\n32", hash), v, r, s) != user) throw;
+    require(validateWithdrawalSignature(token, amount, user, target, authorizeArbitraryFee, nonce, v, r, s));
     if (feeWithdrawal > 100 finney && !authorizeArbitraryFee) feeWithdrawal = 100 finney;
     require(feeWithdrawal <= 1 ether);
-    if (tokens[token][user] < amount) throw;
-    tokens[token][user] = safeSub(tokens[token][user], amount);
-    uint256 fee = safeMul(feeWithdrawal, amount) / 1 ether;
-    tokens[token][feeAccount] = safeAdd(tokens[token][feeAccount], fee);
+    require(tokens[token][user] >= amount);
+    tokens[token][user] = tokens[token][user].sub(amount);
+    uint256 fee = feeWithdrawal.mul(amount) / 1 ether;
+    tokens[token][feeAccount] = tokens[token][feeAccount].add(fee);
     amount = amount - fee;
     amount = amount - (amount % EIP777(token).granularity());
-    protectedFunds[token] = safeSub(protectedFunds[token], amount);
+    protectedFunds[token] = protectedFunds[token].sub(amount);
     EIP777(token).send(target, amount);
     lastActiveTransaction[user][token] = block.number;
+    return true;
   }
-  function transfer(address token, uint256 amount, address user, address target, uint256 nonce, uint8 v, bytes32 r, bytes32 s, uint256 feeTransfer) onlyAdmin returns (bool success) {
+  function transfer(address token, uint256 amount, address user, address target, uint256 nonce, uint8 v, bytes32 r, bytes32 s, uint256 feeTransfer) public onlyAdmin returns (bool success) {
     require(target != 0x0);
-    bytes32 hash = keccak256(TRANSFER_SALT, keccak256(this, token, amount, user, target, nonce));
-    if (transferred[hash]) throw;
+    bytes32 hash = keccak256("\x19IDEX Signed Transfer:\n32", keccak256(this, token, amount, user, target, nonce));
+    require(!transferred[hash]);
     transferred[hash] = true;
-    if (ecrecover(keccak256("\x19Ethereum Signed Message:\n32", hash), v, r, s) != user) throw;
+    require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", hash), v, r, s) == user);
     if (feeTransfer > 100 finney) feeTransfer = 100 finney;
-    if (tokens[token][user] < amount) throw;
-    tokens[token][user] = safeSub(tokens[token][user], amount);
-    uint256 fee = safeMul(feeTransfer, amount) / 1 ether;
-    tokens[token][feeAccount] = safeAdd(tokens[token][feeAccount], fee);
+    require(tokens[token][user] >= amount);
+    tokens[token][user] = tokens[token][user].sub(amount);
+    uint256 fee = feeTransfer.mul(amount) / 1 ether;
+    tokens[token][feeAccount] = tokens[token][feeAccount].add(fee);
     amount = amount - fee;
-    tokens[token][target] = safeAdd(tokens[token][target], amount);
+    tokens[token][target] = tokens[token][target].add(amount);
     lastActiveTransaction[user][token] = block.number;
     lastActiveTransaction[target][token] = block.number;
     Transfer(token, target);
+    return true;
   }
-  function trade(uint256[8] tradeValues, address[4] tradeAddresses, uint8[2] v, bytes32[4] rs) onlyAdmin returns (bool success) {
+  function trade(uint256[8] tradeValues, address[4] tradeAddresses, uint8[2] v, bytes32[4] rs) public onlyAdmin returns (bool) {
     /* amount is in amountBuy terms */
     /* tradeValues
        [0] amountBuy
@@ -394,36 +364,37 @@ contract Exchange is SafeMath, Owned, BytesToAddress {
        [2] maker
        [3] taker
      */
-    if (invalidOrder[tradeAddresses[2]] > tradeValues[3]) throw;
+    require(invalidOrder[tradeAddresses[2]] <= tradeValues[3]);
     bytes32 orderHash = keccak256(this, tradeAddresses[0], tradeValues[0], tradeAddresses[1], tradeValues[1], tradeValues[2], tradeValues[3], tradeAddresses[2]);
-    if (ecrecover(keccak256("\x19Ethereum Signed Message:\n32", orderHash), v[0], rs[0], rs[1]) != tradeAddresses[2]) throw;
+    require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", orderHash), v[0], rs[0], rs[1]) == tradeAddresses[2]);
     bytes32 tradeHash = keccak256(orderHash, tradeValues[4], tradeAddresses[3], tradeValues[5]); 
-    if (ecrecover(keccak256("\x19Ethereum Signed Message:\n32", tradeHash), v[1], rs[2], rs[3]) != tradeAddresses[3]) throw;
-    if (traded[tradeHash]) throw;
+    require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", tradeHash), v[1], rs[2], rs[3]) == tradeAddresses[3]);
+    require(!traded[tradeHash]);
     traded[tradeHash] = true;
     if (tradeValues[6] > 10 finney) tradeValues[6] = 10 finney;
     if (tradeValues[7] > 1 ether) tradeValues[7] = 1 ether;
-    if (safeAdd(orderFills[orderHash], tradeValues[4]) > tradeValues[0]) throw;
-    if (tokens[tradeAddresses[0]][tradeAddresses[3]] < tradeValues[4]) throw;
-    if (tokens[tradeAddresses[1]][tradeAddresses[2]] < (safeMul(tradeValues[1], tradeValues[4]) / tradeValues[0])) throw;
-    tokens[tradeAddresses[0]][tradeAddresses[3]] = safeSub(tokens[tradeAddresses[0]][tradeAddresses[3]], tradeValues[4]);
-    uint256 makerFee = safeMul(tradeValues[4], tradeValues[6]) / 1 ether;
-    tokens[tradeAddresses[0]][tradeAddresses[2]] = safeAdd(tokens[tradeAddresses[0]][tradeAddresses[2]], tradeValues[4] - makerFee);
-    tokens[tradeAddresses[0]][feeAccount] = safeAdd(tokens[tradeAddresses[0]][feeAccount], makerFee);
-    tokens[tradeAddresses[1]][tradeAddresses[2]] = safeSub(tokens[tradeAddresses[1]][tradeAddresses[2]], safeMul(tradeValues[1], tradeValues[4]) / tradeValues[0]);
-    uint256 amountSellAdjusted = safeMul(tradeValues[1], tradeValues[4]) / tradeValues[0];
-    uint256 takerFee = safeMul(tradeValues[7], amountSellAdjusted) / 1 ether;
-    tokens[tradeAddresses[1]][tradeAddresses[3]] = safeAdd(tokens[tradeAddresses[1]][tradeAddresses[3]], safeSub(amountSellAdjusted, takerFee));
-    tokens[tradeAddresses[1]][feeAccount] = safeAdd(tokens[tradeAddresses[1]][feeAccount], takerFee);
-    orderFills[orderHash] = safeAdd(orderFills[orderHash], tradeValues[4]);
+    require(orderFills[orderHash].add(tradeValues[4]) <= tradeValues[0]);
+    require(tokens[tradeAddresses[0]][tradeAddresses[3]] >= tradeValues[4]);
+    require(tokens[tradeAddresses[1]][tradeAddresses[2]] >= (tradeValues[1].mul(tradeValues[4]) / tradeValues[0]));
+    tokens[tradeAddresses[0]][tradeAddresses[3]] = tokens[tradeAddresses[0]][tradeAddresses[3]].sub(tradeValues[4]);
+    uint256 makerFee = tradeValues[4].mul(tradeValues[6]) / 1 ether;
+    tokens[tradeAddresses[0]][tradeAddresses[2]] = tokens[tradeAddresses[0]][tradeAddresses[2]].add(tradeValues[4] - makerFee);
+    tokens[tradeAddresses[0]][feeAccount] = tokens[tradeAddresses[0]][feeAccount].add(makerFee);
+    tokens[tradeAddresses[1]][tradeAddresses[2]] = tokens[tradeAddresses[1]][tradeAddresses[2]].sub(tradeValues[1].mul(tradeValues[4]) / tradeValues[0]);
+    uint256 amountSellAdjusted = tradeValues[1].mul(tradeValues[4]) / tradeValues[0];
+    uint256 takerFee = tradeValues[7].mul(amountSellAdjusted) / 1 ether;
+    tokens[tradeAddresses[1]][tradeAddresses[3]] = tokens[tradeAddresses[1]][tradeAddresses[3]].add(amountSellAdjusted.sub(takerFee));
+    tokens[tradeAddresses[1]][feeAccount] = tokens[tradeAddresses[1]][feeAccount].add(takerFee);
+    orderFills[orderHash] = orderFills[orderHash].add(tradeValues[4]);
     lastActiveTransaction[tradeAddresses[2]][tradeAddresses[0]] = block.number;
     lastActiveTransaction[tradeAddresses[2]][tradeAddresses[1]] = block.number;
     lastActiveTransaction[tradeAddresses[3]][tradeAddresses[0]] = block.number;
     lastActiveTransaction[tradeAddresses[3]][tradeAddresses[1]] = block.number;
     Trade(tradeAddresses[0], tradeAddresses[1], tradeAddresses[2], tradeAddresses[3], tradeValues[4], orderHash);
+    return true;
   }
 
   function() external {
-    throw;
+    revert();
   }
 }

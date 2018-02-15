@@ -5,6 +5,7 @@ const eth = require('./eth');
 const { join } = require('path');
 const util = require('./util');
 const { generate } = require('ethereumjs-wallet');
+const BN = require('bignumber.js');
 const {
   unitMap,
   soliditySha3
@@ -67,6 +68,8 @@ const sendTxCurried = curryN(3, ({
   value
 }));
 
+
+
 const getContractAddressFromTx = compose(
   eth.getTransactionReceipt,
   property('contractAddress')
@@ -79,7 +82,7 @@ const ETH_ADDRESS = '0x' + Array(41).join(0);
 const uninitialized = () => Promise.reject(Error('Not initialized'));
 
 describe('IDEX contract v2', () => {
-  let from, gas, gasPrice, exchangeContract, accounts, erc20Contract;
+  let from, gas, gasPrice, exchangeContract, accounts, erc20Contract, eip777Contract, erc223Contract, erc223Contract2;
   let getCurrentContractBalance = curryN(2, uninitialized);
   let createContract = uninitialized, sendTx = uninitialized, sendEther = uninitialized, createContractFromFile = uninitialized, sendExchangeTx = uninitialized;
   before(() => eth.getAccounts()
@@ -110,21 +113,107 @@ describe('IDEX contract v2', () => {
       from,
       value: unitMap.ether
     }))
+    .then(() => eth.getCode('0x9aa513f1294c8f1b254ba1188991b4cc2efe1d3b'))
+    .then((code) => util.toBN(code))
+    .then(method('toPrecision'))
+    .then((v) => v === '0' && sendEther({
+      to: '0xc253917a2b4a2b7f43286ae500132dae7dc22459',
+      from,
+      value: unitMap.ether
+    }).then(() => eth.sendSignedTransaction(require('./registry.json'))))
     .then(() => createContractFromFile('Exchange.bytecode'))
     .then((contractAddress) => (exchangeContract = contractAddress))
     .then((contractAddress) => (getCurrentContractBalance = getContractBalance(contractAddress)))
     .then(() => createContractFromFile('ERC20.bytecode'))
     .then((tokenContract) => (erc20Contract = tokenContract))
+    .then(() => createContractFromFile('EIP777.bytecode'))
+    .then((tokenContract) => (eip777Contract = tokenContract))
+    .then(() => createContractFromFile('ERC223.bytecode'))
+    .then((tokenContract) => (erc223Contract = tokenContract))
+    .then(() => createContractFromFile('ERC223.bytecode'))
+    .then((tokenContract) => (erc223Contract2 = tokenContract))
     .then(() => { sendExchangeTx = sendTx(exchangeContract); }));
 
+  describe('deposit function', () => {
+    before(() => sendEther({
+      from,
+      to: accounts[2],
+      value: unitMap.ether
+    }).then(() => sendTx(eip777Contract)({
+      from,
+      data: eth.encodeFunctionCall({
+        name: 'send',
+        inputs: [{
+          type: 'address',
+          name: 'target'
+        }, {
+          type: 'uint256',
+          name: 'amount'
+        }]
+      }, [ accounts[2], unitMap.ether ])
+    })).then(() => sendTx(erc223Contract)({
+      from,
+      data: eth.encodeFunctionCall({
+        name: 'transfer',
+        inputs: [{
+          type: 'address',
+          name: 'target'
+        }, {
+          type: 'uint256',
+          name: 'amount'
+        }]
+      }, [ accounts[2], unitMap.ether ])
+    })));
+    it('should accept EIP777 deposits', () => getCurrentContractBalance(accounts[2])(eip777Contract)
+      .then(util.toBN)
+      .then(method('toPrecision'))
+      .then((balance) => sendTx(eip777Contract)({
+        from: accounts[2],
+        data: eth.encodeFunctionCall({
+          name: 'send',
+          inputs: [{
+            type: 'address',
+            name: 'target'
+          }, {
+            type: 'uint256',
+            name: 'amount'
+          }]
+        }, [ exchangeContract, unitMap.ether ])
+      }).then(() => getCurrentContractBalance(accounts[2])(eip777Contract))
+        .then(util.toBN)
+        .then(method('toPrecision'))
+        .then((newBalance) => expect(util.toBN(balance).plus(unitMap.ether).toPrecision()).to.eql(newBalance))));
+    it('should accept ERC223 deposits', () => getCurrentContractBalance(accounts[2])(erc223Contract)
+      .then(util.toBN)
+      .then(method('toPrecision'))
+      .then((balance) => sendTx(erc223Contract)({
+        from: accounts[2],
+        data: eth.encodeFunctionCall({
+          name: 'transfer',
+          inputs: [{
+            type: 'address',
+            name: 'target'
+          }, {
+            type: 'uint256',
+            name: 'amount'
+          }]
+        }, [ exchangeContract, unitMap.ether ])
+      }).then(() => getCurrentContractBalance(accounts[2])(erc223Contract))
+        .then(util.toBN)
+        .then(method('toPrecision'))
+        .then((newBalance) => expect(util.toBN(balance).plus(unitMap.ether).toPrecision()).to.eql(newBalance))));
+  });
   describe('deposit proxy', () => {
     let proxy, sendProxyTx = uninitialized;
     before(() => sendExchangeTx({
       from: accounts[1],
       data: eth.encodeFunctionCall({
         name: 'createDepositProxy',
-        inputs: []
-      }, [])
+        inputs: [{
+          type: 'address',
+          name: 'target'
+        }]
+      }, [ accounts[1] ])
     }).then(eth.getTransactionReceipt)
       .then((receipt) => eth.decodeLog([{
         type: 'address',
@@ -132,10 +221,23 @@ describe('IDEX contract v2', () => {
       }, {
         type: 'address',
         name: 'proxyAddress'
-      }], receipt.logs[0].data, [ receipt.logs[0].topics[0] ]))
+      }], receipt.logs[1].data, [ receipt.logs[1].topics[0] ]))
       .then(property('proxyAddress'))
       .then((_proxy) => (proxy = _proxy))
-      .then(() => (sendProxyTx = sendTx(proxy))));
+      .then(() => (sendProxyTx = sendTx(proxy)))
+      .then(() => sendTx(erc223Contract2)({
+        from,
+        data: eth.encodeFunctionCall({
+          name: 'transfer',
+          inputs: [{
+            name: 'target',
+            type: 'address'
+          }, {
+            name: 'amount',
+            type: 'uint256'
+          }]
+        }, [ accounts[1], unitMap.ether ])
+      })));
 
     it('should forward ether deposits', () => sendEther({
         to: proxy,
@@ -159,6 +261,18 @@ describe('IDEX contract v2', () => {
     it('should forward ERC-20 deposits', () => sendTx(erc20Contract)({
       from,
       data: eth.encodeFunctionCall({
+        name: 'transfer',
+        inputs: [{
+          name: 'recipient',
+          type: 'address'
+        }, {
+          name: 'amount',
+          type: 'uint256'
+        }]
+      }, [ accounts[1], '1' + Array(19).join(0) ])
+    }).then(() => sendTx(erc20Contract)({
+      from: accounts[1],
+      data: eth.encodeFunctionCall({
         name: 'approveAndCall',
         inputs: [{
           name: 'spender',
@@ -171,9 +285,43 @@ describe('IDEX contract v2', () => {
           type: 'bytes'
         }]
       }, [ proxy, '1' + Array(19).join(0), '0x' ])
-    }).then(() => getCurrentExchangeBalance(from, erc20Contract))
+    }).then(() => getCurrentContractBalance(accounts[1])(erc20Contract))
+      .then(util.toBN)
+      .then(method('toPrecision'))
+      .then((amt) => expect(amt).to.eql('1' + Array(19).join(0)))));
+    it('should forward EIP777 deposits', () => sendTx(eip777Contract)({
+      from,
+      data: eth.encodeFunctionCall({
+        name: 'send',
+        inputs: [{
+          name: 'to',
+          type: 'address'
+        }, {
+          name: 'value',
+          type: 'uint256'
+        }]
+      }, [ proxy, '1' + Array(19).join(0) ])
+    }).then(() => getCurrentContractBalance(accounts[1])(eip777Contract))
+      .then(util.toBN)
       .then(method('toPrecision'))
       .then((amt) => expect(amt).to.eql('1' + Array(19).join(0))));
+    it('should forward ERC223 deposits', () => sendTx(erc223Contract2)({
+      from,
+      data: eth.encodeFunctionCall({
+        name: 'transfer',
+        inputs: [{
+          name: 'to',
+          type: 'address'
+        }, {
+          name: 'value',
+          type: 'uint256'
+        }]
+      }, [ proxy, '1' + Array(19).join(0) ])
+    }).then(() => getCurrentContractBalance(accounts[1])(erc223Contract2))
+      .then(util.toBN)
+      .then(method('toPrecision'))
+      .then((amt) => expect(amt).to.eql('1' + Array(19).join(0))));
+ 
   });
   
   describe('transfer fn', () => {
@@ -423,5 +571,104 @@ describe('IDEX contract v2', () => {
         .then(() => eth.getBalance(accounts[3]))
         .then((balance) => expect(util.toBN(balance).minus(previousBalance).toPrecision()).to.eql(util.toBN('500').times(unitMap.finney).toPrecision()));
     }));
+  });
+  let flag = true;
+  describe('ERC-20 recovery function', () => {
+    it('should allow recovery of ERC20 tokens improperly deposited', () => sendTx(erc20Contract)({
+      from,
+      data: eth.encodeFunctionCall({
+        name: 'approveAndCall',
+        inputs: [{
+          name: 'beneficiary',
+          type: 'address'
+        }, {
+          name: 'amount',
+          type: 'uint256'
+        }, {
+          name: 'data',
+          type: 'bytes'
+        }]
+      }, [ exchangeContract, unitMap.ether, '0x' ])
+    }).then(() => sendTx(erc20Contract)({
+      from,
+      data: eth.encodeFunctionCall({
+        name: 'transfer',
+        inputs: [{
+          name: 'beneficiary',
+          type: 'address'
+        }, {
+          name: 'amount',
+          type: 'uint256'
+        }]
+      }, [ exchangeContract, unitMap.ether ])
+    })).then(() => eth.call({
+      to: exchangeContract,
+      data: eth.encodeFunctionCall({
+        name: 'protectedFunds',
+        inputs: [{
+          name: 'token',
+          type: 'address'
+        }]
+      }, [ erc20Contract ])
+    }).then((amount) => util.toBN(amount).toPrecision())
+      .then((amount) => expect(amount).to.eql(unitMap.ether)))
+    .then(() => eth.call({
+      to: erc20Contract,
+      data: eth.encodeFunctionCall({
+        name: 'balanceOf',
+        inputs: [{
+          name: 'holder',
+          type: 'address'
+        }]
+      }, [ exchangeContract ])
+    }).then(util.toBN).then(method('toPrecision')).then((amount) => expect(amount).to.eql('2' + unitMap.ether.substr(1))))
+    .then(() => sendExchangeTx({
+      from,
+      data: eth.encodeFunctionCall({
+        name: 'withdrawUnprotectedFunds',
+        inputs: [{
+          name: 'token',
+          type: 'address'
+        }, {
+          name: 'target',
+          type: 'address'
+        }, {
+          name: 'amount',
+          type: 'uint256'
+        }, {
+          name: 'isEIP777',
+          type: 'bool'
+        }]
+      }, [
+        erc20Contract,
+        accounts[5],
+        new BN(unitMap.ether).plus(1).toPrecision(),
+        false
+      ])
+    }).catch(() => (flag = false)).then(() => expect(flag).to.be.false))
+    .then(() => sendExchangeTx({
+      from,
+      data: eth.encodeFunctionCall({
+        name: 'withdrawUnprotectedFunds',
+        inputs: [{
+          name: 'token',
+          type: 'address'
+        }, {
+          name: 'target',
+          type: 'address'
+        }, {
+          name: 'amount',
+          type: 'uint256'
+        }, {
+          name: 'isEIP777',
+          type: 'bool'
+        }]
+      }, [
+        erc20Contract,
+        accounts[5],
+        unitMap.ether,
+        false
+      ])
+    })));
   });
 });

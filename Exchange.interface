@@ -18,7 +18,7 @@
   "name": "withdrawEIP777",
   "outputs": [
    {
-    "name": "success",
+    "name": "",
     "type": "bool"
    }
   ],
@@ -63,7 +63,7 @@
   "name": "withdrawUnprotectedFunds",
   "outputs": [
    {
-    "name": "success",
+    "name": "",
     "type": "bool"
    }
   ],
@@ -101,7 +101,7 @@
   "name": "createDepositProxy",
   "outputs": [
    {
-    "name": "proxyAddress",
+    "name": "",
     "type": "address"
    }
   ],
@@ -180,25 +180,6 @@
   "type": "function"
  },
  {
-  "constant": false,
-  "inputs": [
-   {
-    "name": "_address",
-    "type": "bytes"
-   }
-  ],
-  "name": "bytesToAddress",
-  "outputs": [
-   {
-    "name": "",
-    "type": "address"
-   }
-  ],
-  "payable": false,
-  "stateMutability": "nonpayable",
-  "type": "function"
- },
- {
   "constant": true,
   "inputs": [
    {
@@ -264,7 +245,7 @@
   "name": "adminWithdrawEIP777",
   "outputs": [
    {
-    "name": "success",
+    "name": "",
     "type": "bool"
    }
   ],
@@ -285,15 +266,6 @@
    }
   ],
   "name": "setAdmin",
-  "outputs": [],
-  "payable": false,
-  "stateMutability": "nonpayable",
-  "type": "function"
- },
- {
-  "constant": false,
-  "inputs": [],
-  "name": "registerEIP777Interface",
   "outputs": [],
   "payable": false,
   "stateMutability": "nonpayable",
@@ -357,20 +329,6 @@
  },
  {
   "constant": false,
-  "inputs": [],
-  "name": "getOwner",
-  "outputs": [
-   {
-    "name": "out",
-    "type": "address"
-   }
-  ],
-  "payable": false,
-  "stateMutability": "nonpayable",
-  "type": "function"
- },
- {
-  "constant": false,
   "inputs": [
    {
     "name": "from",
@@ -389,11 +347,11 @@
     "type": "bytes"
    },
    {
-    "name": "operator",
+    "name": "",
     "type": "address"
    },
    {
-    "name": "operatorData",
+    "name": "",
     "type": "bytes"
    }
   ],
@@ -415,6 +373,32 @@
   ],
   "payable": false,
   "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "_from",
+    "type": "address"
+   },
+   {
+    "name": "_tokens",
+    "type": "uint256"
+   },
+   {
+    "name": "_token",
+    "type": "address"
+   },
+   {
+    "name": "",
+    "type": "bytes"
+   }
+  ],
+  "name": "receiveApproval",
+  "outputs": [],
+  "payable": false,
+  "stateMutability": "nonpayable",
   "type": "function"
  },
  {
@@ -464,31 +448,8 @@
   "name": "adminWithdraw",
   "outputs": [
    {
-    "name": "success",
-    "type": "bool"
-   }
-  ],
-  "payable": false,
-  "stateMutability": "nonpayable",
-  "type": "function"
- },
- {
-  "constant": false,
-  "inputs": [
-   {
-    "name": "a",
-    "type": "uint256"
-   },
-   {
-    "name": "b",
-    "type": "uint256"
-   }
-  ],
-  "name": "safeSub",
-  "outputs": [
-   {
     "name": "",
-    "type": "uint256"
+    "type": "bool"
    }
   ],
   "payable": false,
@@ -506,7 +467,7 @@
   "name": "setThirdPartyDepositorDisabled",
   "outputs": [
    {
-    "name": "success",
+    "name": "",
     "type": "bool"
    }
   ],
@@ -574,29 +535,6 @@
   "type": "function"
  },
  {
-  "constant": false,
-  "inputs": [
-   {
-    "name": "a",
-    "type": "uint256"
-   },
-   {
-    "name": "b",
-    "type": "uint256"
-   }
-  ],
-  "name": "safeMul",
-  "outputs": [
-   {
-    "name": "",
-    "type": "uint256"
-   }
-  ],
-  "payable": false,
-  "stateMutability": "nonpayable",
-  "type": "function"
- },
- {
   "constant": true,
   "inputs": [
    {
@@ -634,7 +572,7 @@
   "name": "withdraw",
   "outputs": [
    {
-    "name": "success",
+    "name": "",
     "type": "bool"
    }
   ],
@@ -653,7 +591,7 @@
   "name": "setInactivityReleasePeriod",
   "outputs": [
    {
-    "name": "success",
+    "name": "",
     "type": "bool"
    }
   ],
@@ -688,29 +626,6 @@
   "constant": false,
   "inputs": [
    {
-    "name": "a",
-    "type": "uint256"
-   },
-   {
-    "name": "b",
-    "type": "uint256"
-   }
-  ],
-  "name": "safeAdd",
-  "outputs": [
-   {
-    "name": "",
-    "type": "uint256"
-   }
-  ],
-  "payable": false,
-  "stateMutability": "nonpayable",
-  "type": "function"
- },
- {
-  "constant": false,
-  "inputs": [
-   {
     "name": "tradeValues",
     "type": "uint256[8]"
    },
@@ -730,7 +645,7 @@
   "name": "trade",
   "outputs": [
    {
-    "name": "success",
+    "name": "",
     "type": "bool"
    }
   ],
@@ -761,7 +676,12 @@
    }
   ],
   "name": "deposit",
-  "outputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool"
+   }
+  ],
   "payable": true,
   "stateMutability": "payable",
   "type": "function"
@@ -802,7 +722,12 @@
    }
   ],
   "name": "depositToken",
-  "outputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool"
+   }
+  ],
   "payable": false,
   "stateMutability": "nonpayable",
   "type": "function"

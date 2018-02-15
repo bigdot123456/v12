@@ -50,7 +50,7 @@ contract ERC20 is SafeMath, Owned {
      *
      * Initializes contract with initial supply tokens to the creator of the contract
      */
-    function AURA() public {
+    function ERC20() public {
         totalSupply = 1000000000000000000000000000;
         balanceOf[msg.sender] = totalSupply;
     }
