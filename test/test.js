@@ -81,7 +81,7 @@ const sendOfflineTx = ({
   eth.getBlock('pending').then(property('gasLimit')),
   eth.getGasPrice()
 ]).then(([ nonce, gas, gasPrice ]) => {
-  const tx = new Transaction(util.ln({
+  const tx = new Transaction({
     gasLimit: fromDecimal(gas),
     gasPrice: fromDecimal(gasPrice),
     nonce: fromDecimal(nonce),
@@ -89,7 +89,7 @@ const sendOfflineTx = ({
     from,
     to,
     value: fromDecimal(value)
-  }));
+  });
   tx.sign(pk);
   return eth.sendSignedTransaction(bufferToHex(tx.serialize()));
 });
