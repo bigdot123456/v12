@@ -1233,4 +1233,5 @@ describe("IDEX contract v2", () => {
         .then(balance => expect(balance).to.eql("10000"));
     });
   });
+  describe('', () => {})
 });
