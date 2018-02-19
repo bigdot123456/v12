@@ -215,7 +215,7 @@ contract Exchange is Owned {
   }
 
   function depositToken(address token, address target, uint256 amount) public returns (bool) {
-    require(target != 0x0);
+    if (target == 0x0) target = msg.sender;
     require(acceptDeposit(token, target, amount));
     require(Token(token).transferFrom(msg.sender, this, amount));
     return true;
@@ -229,9 +229,9 @@ contract Exchange is Owned {
     Deposit(token, target, amount, tokens[token][target]);
     return true;
   }
-    
+
   function deposit(address target) public payable returns (bool) {
-    require(target != 0x0);
+    if (target == 0x0) target = msg.sender;
     require(acceptDeposit(0x0, target, msg.value));
     return true;
   }
@@ -254,13 +254,13 @@ contract Exchange is Owned {
     if (beneficiary != 0x0) from = beneficiary;
     require(acceptDeposit(msg.sender, from, amount));
   }
-    
+
   function registerEIP777Interface() internal {
     InterfaceImplementationRegistry(0x9aA513f1294c8f1B254bA1188991B4cc2EFE1D3B).setInterfaceImplementer(this, keccak256("ITokenRecipient"), this);
   }
 
   function withdraw(address token, address target, uint256 amount) public returns (bool) {
-    require(target != 0x0);
+    if (target == 0x0) target = msg.sender;
     require(block.number.sub(lastActiveTransaction[msg.sender][token]) >= inactivityReleasePeriod);
     require(tokens[token][msg.sender] >= amount);
     tokens[token][msg.sender] = tokens[token][msg.sender].sub(amount);
@@ -272,7 +272,7 @@ contract Exchange is Owned {
   }
 
   function withdrawEIP777(address token, address target, uint256 amount) public returns (bool) {
-    require(target != 0x0);
+    if (target == 0x0) target = msg.sender;
     require(block.number.sub(lastActiveTransaction[msg.sender][token]) >= inactivityReleasePeriod);
     require(tokens[token][msg.sender] >= amount);
     tokens[token][msg.sender] = tokens[token][msg.sender].sub(amount);
@@ -292,7 +292,7 @@ contract Exchange is Owned {
   }
 
   function adminWithdraw(address token, uint256 amount, address user, address target, bool authorizeArbitraryFee, uint256 nonce, uint8 v, bytes32 r, bytes32 s, uint256 feeWithdrawal) public onlyAdmin returns (bool) {
-    require(target != 0x0);
+    if (target == 0x0) target = user;
     require(validateWithdrawalSignature(token, amount, user, target, authorizeArbitraryFee, nonce, v, r, s));
     if (feeWithdrawal > 100 finney && !authorizeArbitraryFee) feeWithdrawal = 100 finney;
     require(feeWithdrawal <= 1 ether);
@@ -308,7 +308,7 @@ contract Exchange is Owned {
     return true;
   }
   function adminWithdrawEIP777(address token, uint256 amount, address user, address target, bool authorizeArbitraryFee, uint256 nonce, uint8 v, bytes32 r, bytes32 s, uint256 feeWithdrawal) public onlyAdmin returns (bool) {
-    require(target != 0x0);
+    if (target == 0x0) target = user;
     require(validateWithdrawalSignature(token, amount, user, target, authorizeArbitraryFee, nonce, v, r, s));
     if (feeWithdrawal > 100 finney && !authorizeArbitraryFee) feeWithdrawal = 100 finney;
     require(feeWithdrawal <= 1 ether);
@@ -361,7 +361,7 @@ contract Exchange is Owned {
     require(invalidOrder[tradeAddresses[2]] <= tradeValues[3]);
     bytes32 orderHash = keccak256(this, tradeAddresses[0], tradeValues[0], tradeAddresses[1], tradeValues[1], tradeValues[2], tradeValues[3], tradeAddresses[2]);
     require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", orderHash), v[0], rs[0], rs[1]) == tradeAddresses[2]);
-    bytes32 tradeHash = keccak256(orderHash, tradeValues[4], tradeAddresses[3], tradeValues[5]); 
+    bytes32 tradeHash = keccak256(orderHash, tradeValues[4], tradeAddresses[3], tradeValues[5]);
     require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", tradeHash), v[1], rs[2], rs[3]) == tradeAddresses[3]);
     require(!traded[tradeHash]);
     traded[tradeHash] = true;
