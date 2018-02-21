@@ -297,15 +297,15 @@ contract Exchange is Owned {
   }
 
   function adminWithdraw(address token, uint256 amount, address user, address target, bool authorizeArbitraryFee, uint256 nonce, uint8 v, bytes32 r, bytes32 s, uint256 feeWithdrawal) public onlyAdmin returns (bool) {
-    if (target == 0x0) target = user;
     require(validateWithdrawalSignature(token, amount, user, target, authorizeArbitraryFee, nonce, v, r, s));
+    if (target == 0x0) target = user;
     if (feeWithdrawal > 100 finney && !authorizeArbitraryFee) feeWithdrawal = 100 finney;
     require(feeWithdrawal <= 1 ether);
     require(tokens[token][user] >= amount);
     tokens[token][user] = tokens[token][user].sub(amount);
     uint256 fee = feeWithdrawal.mul(amount) / 1 ether;
     tokens[token][feeAccount] = tokens[token][feeAccount].add(fee);
-    amount = amount - fee;
+    amount = amount.sub(fee);
     protectedFunds[token] = protectedFunds[token].sub(amount);
     if (token == address(0)) require(target.send(amount));
     else require(Token(token).transfer(target, amount));
@@ -313,16 +313,16 @@ contract Exchange is Owned {
     return true;
   }
   function adminWithdrawEIP777(address token, uint256 amount, address user, address target, bool authorizeArbitraryFee, uint256 nonce, uint8 v, bytes32 r, bytes32 s, uint256 feeWithdrawal) public onlyAdmin returns (bool) {
-    if (target == 0x0) target = user;
     require(validateWithdrawalSignature(token, amount, user, target, authorizeArbitraryFee, nonce, v, r, s));
+    if (target == 0x0) target = user;
     if (feeWithdrawal > 100 finney && !authorizeArbitraryFee) feeWithdrawal = 100 finney;
     require(feeWithdrawal <= 1 ether);
     require(tokens[token][user] >= amount);
     tokens[token][user] = tokens[token][user].sub(amount);
     uint256 fee = feeWithdrawal.mul(amount) / 1 ether;
     tokens[token][feeAccount] = tokens[token][feeAccount].add(fee);
-    amount = amount - fee;
-    amount = amount - (amount % EIP777(token).granularity());
+    amount = amount.sub(fee);
+    amount = amount.sub(amount % EIP777(token).granularity());
     protectedFunds[token] = protectedFunds[token].sub(amount);
     EIP777(token).send(target, amount);
     lastActiveTransaction[user][token] = block.number;
@@ -339,7 +339,7 @@ contract Exchange is Owned {
     tokens[token][user] = tokens[token][user].sub(amount);
     uint256 fee = feeTransfer.mul(amount) / 1 ether;
     tokens[token][feeAccount] = tokens[token][feeAccount].add(fee);
-    amount = amount - fee;
+    amount = amount.sub(fee);
     tokens[token][target] = tokens[token][target].add(amount);
     lastActiveTransaction[user][token] = block.number;
     lastActiveTransaction[target][token] = block.number;
