@@ -257,6 +257,25 @@
   "constant": false,
   "inputs": [
    {
+    "name": "feeAccount_",
+    "type": "address"
+   }
+  ],
+  "name": "setFeeAccount",
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
     "name": "admin",
     "type": "address"
    },

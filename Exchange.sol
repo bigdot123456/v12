@@ -193,6 +193,11 @@ contract Exchange is Owned {
     registerEIP777Interface();
   }
 
+  function setFeeAccount(address feeAccount_) public onlyOwner returns (bool) {
+    feeAccount = feeAccount_;
+    return true;
+  }
+
   function setThirdPartyDepositorDisabled(bool disabled) external returns (bool) {
     thirdPartyDepositorDisabled[msg.sender] = disabled;
     return true;
