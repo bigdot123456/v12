@@ -76,6 +76,52 @@
   "inputs": [
    {
     "name": "",
+    "type": "address"
+   }
+  ],
+  "name": "lastActiveTransaction",
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
+    "name": "token",
+    "type": "address"
+   },
+   {
+    "name": "isActive",
+    "type": "bool"
+   },
+   {
+    "name": "blocks",
+    "type": "uint256"
+   }
+  ],
+  "name": "setInactivityReleasePeriodForToken",
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": true,
+  "inputs": [
+   {
+    "name": "",
     "type": "bytes32"
    }
   ],
@@ -251,6 +297,29 @@
   ],
   "payable": false,
   "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": true,
+  "inputs": [
+   {
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "name": "inactivityReleaseOverride",
+  "outputs": [
+   {
+    "name": "isActive",
+    "type": "bool"
+   },
+   {
+    "name": "blocks",
+    "type": "uint256"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "view",
   "type": "function"
  },
  {
@@ -555,6 +624,20 @@
  },
  {
   "constant": true,
+  "inputs": [],
+  "name": "INACTIVITY_CAP",
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "constant": true,
   "inputs": [
    {
     "name": "",
@@ -619,26 +702,17 @@
   "type": "function"
  },
  {
-  "constant": true,
-  "inputs": [
-   {
-    "name": "",
-    "type": "address"
-   },
-   {
-    "name": "",
-    "type": "address"
-   }
-  ],
-  "name": "lastActiveTransaction",
+  "constant": false,
+  "inputs": [],
+  "name": "resetInactivityTimer",
   "outputs": [
    {
     "name": "",
-    "type": "uint256"
+    "type": "bool"
    }
   ],
   "payable": false,
-  "stateMutability": "view",
+  "stateMutability": "nonpayable",
   "type": "function"
  },
  {
@@ -909,6 +983,18 @@
    }
   ],
   "name": "Transfer",
+  "type": "event"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": false,
+    "name": "user",
+    "type": "address"
+   }
+  ],
+  "name": "InactivityReset",
   "type": "event"
  },
  {

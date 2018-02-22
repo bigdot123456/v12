@@ -152,6 +152,7 @@ contract Owned {
 contract Exchange is Owned {
   using BytesToAddress for bytes;
   using SafeMath for uint256;
+  uint256 constant public INACTIVITY_CAP = 1e6;
   mapping (address => uint256) public invalidOrder;
   event ProxyCreated(address beneficiary, address proxyAddress);
   function createDepositProxy(address target) public returns (address) {
@@ -163,12 +164,18 @@ contract Exchange is Owned {
   function invalidateOrdersBefore(address user, uint256 nonce) public onlyAdmin {
     require(nonce >= invalidOrder[user]);
     invalidOrder[user] = nonce;
+    lastActiveTransaction[user] = block.number;
   }
 
   mapping (address => mapping (address => uint256)) public tokens; //mapping of token addresses to mapping of account balances
 
   mapping (address => bool) public admins;
-  mapping (address => mapping (address => uint256)) public lastActiveTransaction; // address to token to timestamp
+  mapping (address => uint256) public lastActiveTransaction;
+  struct InactivityOverride {
+    bool isActive;
+    uint256 blocks;
+  }
+  mapping (address => InactivityOverride) public inactivityReleaseOverride;
   mapping (bytes32 => uint256) public orderFills;
   address public feeAccount;
   uint256 public inactivityReleasePeriod = 100000;
@@ -181,10 +188,32 @@ contract Exchange is Owned {
   event Deposit(address token, address user, uint256 amount, uint256 balance);
   event Withdraw(address token, address user, uint256 amount, uint256 balance);
   event Transfer(address token, address recipient);
+  event InactivityReset(address user);
 
-  function setInactivityReleasePeriod(uint256 expiry) public onlyAdmin returns (bool) {
-    require(expiry <= 1000000);
+  modifier underInactivityCap(uint256 blocks) {
+    require(blocks <= INACTIVITY_CAP);
+    _;
+  }
+
+  function setInactivityReleasePeriod(uint256 expiry) public onlyOwner underInactivityCap(expiry) returns (bool) {
     inactivityReleasePeriod = expiry;
+    return true;
+  }
+
+  function setInactivityReleasePeriodForToken(address token, bool isActive, uint256 blocks) public onlyOwner underInactivityCap(blocks) returns (bool) {
+    inactivityReleaseOverride[token].isActive = isActive;
+    inactivityReleaseOverride[token].blocks = blocks;
+    return true;
+  }
+
+  modifier eligibleForRelease(address user, address token) {
+    require(block.number.sub(lastActiveTransaction[user]) >= (inactivityReleaseOverride[token].isActive ? inactivityReleaseOverride[token].blocks : inactivityReleasePeriod));
+    _;
+  }
+
+  function resetInactivityTimer() public returns (bool) {
+    lastActiveTransaction[msg.sender] = block.number;
+    InactivityReset(msg.sender);
     return true;
   }
 
@@ -230,7 +259,7 @@ contract Exchange is Owned {
     require(!thirdPartyDepositorDisabled[msg.sender] || msg.sender == target);
     tokens[token][target] = tokens[token][target].add(amount);
     protectedFunds[token] = protectedFunds[token].add(amount);
-    lastActiveTransaction[target][token] = block.number;
+    lastActiveTransaction[target] = block.number;
     Deposit(token, target, amount, tokens[token][target]);
     return true;
   }
@@ -264,9 +293,8 @@ contract Exchange is Owned {
     InterfaceImplementationRegistry(0x9aA513f1294c8f1B254bA1188991B4cc2EFE1D3B).setInterfaceImplementer(this, keccak256("ITokenRecipient"), this);
   }
 
-  function withdraw(address token, address target, uint256 amount) public returns (bool) {
+  function withdraw(address token, address target, uint256 amount) public eligibleForRelease(msg.sender, token) returns (bool) {
     if (target == 0x0) target = msg.sender;
-    require(block.number.sub(lastActiveTransaction[msg.sender][token]) >= inactivityReleasePeriod);
     require(tokens[token][msg.sender] >= amount);
     tokens[token][msg.sender] = tokens[token][msg.sender].sub(amount);
     protectedFunds[token] = protectedFunds[token].sub(amount);
@@ -276,9 +304,8 @@ contract Exchange is Owned {
     return true;
   }
 
-  function withdrawEIP777(address token, address target, uint256 amount) public returns (bool) {
+  function withdrawEIP777(address token, address target, uint256 amount) public eligibleForRelease(msg.sender, token) returns (bool) {
     if (target == 0x0) target = msg.sender;
-    require(block.number.sub(lastActiveTransaction[msg.sender][token]) >= inactivityReleasePeriod);
     require(tokens[token][msg.sender] >= amount);
     tokens[token][msg.sender] = tokens[token][msg.sender].sub(amount);
     amount = amount.sub(amount % EIP777(token).granularity());
@@ -309,7 +336,7 @@ contract Exchange is Owned {
     protectedFunds[token] = protectedFunds[token].sub(amount);
     if (token == address(0)) require(target.send(amount));
     else require(Token(token).transfer(target, amount));
-    lastActiveTransaction[user][token] = block.number;
+    lastActiveTransaction[user] = block.number;
     return true;
   }
   function adminWithdrawEIP777(address token, uint256 amount, address user, address target, bool authorizeArbitraryFee, uint256 nonce, uint8 v, bytes32 r, bytes32 s, uint256 feeWithdrawal) public onlyAdmin returns (bool) {
@@ -325,7 +352,7 @@ contract Exchange is Owned {
     amount = amount.sub(amount % EIP777(token).granularity());
     protectedFunds[token] = protectedFunds[token].sub(amount);
     EIP777(token).send(target, amount);
-    lastActiveTransaction[user][token] = block.number;
+    lastActiveTransaction[user] = block.number;
     return true;
   }
   function transfer(address token, uint256 amount, address user, address target, uint256 nonce, uint8 v, bytes32 r, bytes32 s, uint256 feeTransfer) public onlyAdmin returns (bool success) {
@@ -341,8 +368,8 @@ contract Exchange is Owned {
     tokens[token][feeAccount] = tokens[token][feeAccount].add(fee);
     amount = amount.sub(fee);
     tokens[token][target] = tokens[token][target].add(amount);
-    lastActiveTransaction[user][token] = block.number;
-    lastActiveTransaction[target][token] = block.number;
+    lastActiveTransaction[user] = block.number;
+    lastActiveTransaction[target] = block.number;
     Transfer(token, target);
     return true;
   }
@@ -385,10 +412,8 @@ contract Exchange is Owned {
     tokens[tradeAddresses[1]][tradeAddresses[3]] = tokens[tradeAddresses[1]][tradeAddresses[3]].add(amountSellAdjusted.sub(takerFee));
     tokens[tradeAddresses[1]][feeAccount] = tokens[tradeAddresses[1]][feeAccount].add(takerFee);
     orderFills[orderHash] = orderFills[orderHash].add(tradeValues[4]);
-    lastActiveTransaction[tradeAddresses[2]][tradeAddresses[0]] = block.number;
-    lastActiveTransaction[tradeAddresses[2]][tradeAddresses[1]] = block.number;
-    lastActiveTransaction[tradeAddresses[3]][tradeAddresses[0]] = block.number;
-    lastActiveTransaction[tradeAddresses[3]][tradeAddresses[1]] = block.number;
+    lastActiveTransaction[tradeAddresses[2]] = block.number;
+    lastActiveTransaction[tradeAddresses[3]] = block.number;
     Trade(tradeAddresses[0], tradeAddresses[1], tradeAddresses[2], tradeAddresses[3], tradeValues[4], orderHash);
     return true;
   }
