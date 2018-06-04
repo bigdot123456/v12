@@ -3,6 +3,61 @@
   "constant": false,
   "inputs": [
    {
+    "name": "tokenBuy",
+    "type": "address"
+   },
+   {
+    "name": "amountBuy",
+    "type": "uint256"
+   },
+   {
+    "name": "tokenSell",
+    "type": "address"
+   },
+   {
+    "name": "amountSell",
+    "type": "uint256"
+   },
+   {
+    "name": "user",
+    "type": "address"
+   },
+   {
+    "name": "nonce",
+    "type": "uint256"
+   },
+   {
+    "name": "expires",
+    "type": "uint256"
+   },
+   {
+    "name": "v",
+    "type": "uint8"
+   },
+   {
+    "name": "r",
+    "type": "bytes32"
+   },
+   {
+    "name": "s",
+    "type": "bytes32"
+   }
+  ],
+  "name": "cancel",
+  "outputs": [
+   {
+    "name": "",
+    "type": "bool"
+   }
+  ],
+  "payable": false,
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "constant": false,
+  "inputs": [
+   {
     "name": "token",
     "type": "address"
    },
@@ -939,6 +994,28 @@
    }
   ],
   "name": "Deposit",
+  "type": "event"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": false,
+    "name": "user",
+    "type": "address"
+   },
+   {
+    "indexed": false,
+    "name": "orderHash",
+    "type": "bytes32"
+   },
+   {
+    "indexed": false,
+    "name": "nonce",
+    "type": "uint256"
+   }
+  ],
+  "name": "Cancel",
   "type": "event"
  },
  {

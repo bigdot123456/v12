@@ -186,6 +186,7 @@ contract Exchange is Owned {
   mapping (address => bool) public thirdPartyDepositorDisabled;
   event Trade(address tokenBuy, address tokenSell, address maker, address taker, uint256 amount, bytes32 hash);
   event Deposit(address token, address user, uint256 amount, uint256 balance);
+  event Cancel(address user, bytes32 orderHash, uint256 nonce);
   event Withdraw(address token, address user, uint256 amount, uint256 balance);
   event Transfer(address token, address recipient);
   event InactivityReset(address user);
@@ -390,6 +391,7 @@ contract Exchange is Owned {
        [2] maker
        [3] taker
      */
+    require(block.number < tradeValues[2]);
     require(invalidOrder[tradeAddresses[2]] <= tradeValues[3]);
     bytes32 orderHash = keccak256(this, tradeAddresses[0], tradeValues[0], tradeAddresses[1], tradeValues[1], tradeValues[2], tradeValues[3], tradeAddresses[2]);
     require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", orderHash), v[0], rs[0], rs[1]) == tradeAddresses[2]);
@@ -415,6 +417,15 @@ contract Exchange is Owned {
     lastActiveTransaction[tradeAddresses[2]] = block.number;
     lastActiveTransaction[tradeAddresses[3]] = block.number;
     Trade(tradeAddresses[0], tradeAddresses[1], tradeAddresses[2], tradeAddresses[3], tradeValues[4], orderHash);
+    return true;
+  }
+
+  function cancel(address tokenBuy, uint256 amountBuy, address tokenSell, uint256 amountSell, address user, uint256 nonce, uint256 expires, uint8 v, bytes32 r, bytes32 s) public onlyAdmin returns (bool) {
+    bytes32 orderHash = keccak256(this, tokenBuy, amountBuy, tokenSell, amountSell, expires, nonce, user);
+    bytes32 hash = keccak256("\x19IDEX Signed Cancel:\n32", orderHash);
+    require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", hash), v, r, s) == user);
+    orderFills[orderHash] = amountBuy;
+    Cancel(user, orderHash, nonce);
     return true;
   }
 
